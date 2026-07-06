@@ -106,7 +106,9 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: "Notes are too long — keep them under 20,000 characters." });
   }
 
-  const apiKey = process.env.MERGE_API_KEY;
+  // Strip BOM (U+FEFF) and whitespace that can sneak in when the value is set via a shell.
+  const BOM = String.fromCharCode(0xfeff);
+  const apiKey = (process.env.MERGE_API_KEY || "").split(BOM).join("").trim();
   if (!apiKey) {
     return res.status(500).json({ error: "The server is missing its gateway API key." });
   }
@@ -128,7 +130,8 @@ export default async function handler(req, res) {
         ],
       }),
     });
-  } catch {
+  } catch (err) {
+    console.error("Gateway fetch failed", err);
     return res.status(502).json({ error: "Couldn't reach the model gateway. Try again in a moment." });
   }
 
